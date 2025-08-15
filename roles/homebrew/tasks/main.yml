@@ -1,0 +1,102 @@
+---
+# ========= 準備フェーズ =========
+
+# ホスト名解決
+- name: Resolve hostname (inventory_hostname優先)
+  ansible.builtin.set_fact:
+    target_host: "{{ inventory_hostname | default(ansible_hostname) }}"
+
+# 共通変数設定
+- name: Set common variables
+  ansible.builtin.set_fact:
+    brew_paths:
+      - /opt/homebrew/bin/brew
+      - /usr/local/bin/brew
+    brewfile_common: "{{ role_path }}/files/Brewfile.common"
+    brewfile_host: "{{ role_path }}/files/Brewfile.{{ target_host }}"
+    effective_brewfile_path: >-
+      {{ (ansible_check_mode | bool)
+         | ternary('/tmp/.Brewfile.ansible-' ~ ansible_date_time.epoch,
+                   brewfile_file_path | default('~/.Brewfile')) }}
+
+# Brewfileの存在チェック
+- name: Ensure Brewfile.common exists
+  ansible.builtin.stat:
+    path: "{{ brewfile_common }}"
+  register: common_file
+
+- name: Ensure host-specific Brewfile exists (optional)
+  ansible.builtin.stat:
+    path: "{{ brewfile_host }}"
+  register: host_file
+
+# ========= ファイル準備フェーズ =========
+
+# Brewfile をマージ（common + host）
+- name: Build merged Brewfile (common + host)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    cat "{{ brewfile_common }}" > "{{ effective_brewfile_path }}"
+    {{ 'cat "' ~ brewfile_host ~ '" >> "' ~ effective_brewfile_path ~ '"' if host_file.stat.exists else 'true' }}
+  args:
+    executable: /bin/zsh
+  changed_when: false
+  when: common_file.stat.exists
+  check_mode: no
+
+- name: Print which Brewfile will be used
+  ansible.builtin.debug:
+    msg: "Using {{ effective_brewfile_path }} ({{ 'common + ' ~ target_host if host_file.stat.exists else 'common only' }})"
+
+# ========= 実行フェーズ =========
+
+# チェックモード：実際には入れずに検証だけ
+- name: Dry-run brew bundle check (check-mode)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    # brewのパスを解決
+    for brew_path in {{ brew_paths | to_json }}; do
+      if [ -x "$brew_path" ]; then
+        eval "$("$brew_path" shellenv)"
+        break
+      fi
+    done
+    # brewが見つからない場合
+    if ! command -v brew >/dev/null 2>&1; then
+      echo "brew not found" >&2
+      exit 1
+    fi
+    brew bundle check --file="{{ effective_brewfile_path }}"
+  args:
+    executable: /bin/zsh
+  register: bundle_check
+  changed_when: false
+  when: ansible_check_mode
+  check_mode: no
+
+# 本番：インストール/更新
+- name: Run brew bundle (install/update)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    # brewのパスを解決
+    for brew_path in {{ brew_paths | to_json }}; do
+      if [ -x "$brew_path" ]; then
+        eval "$("$brew_path" shellenv)"
+        break
+      fi
+    done
+    # brewが見つからない場合
+    if ! command -v brew >/dev/null 2>&1; then
+      echo "brew not found" >&2
+      exit 1
+    fi
+    brew bundle {{ '--cleanup' if brewfile_cleanup else '' }} --file="{{ effective_brewfile_path }}"
+  args:
+    executable: /bin/zsh
+  register: bundle_out
+  changed_when: >-
+    'Installing' in bundle_out.stdout
+    or 'Installing' in bundle_out.stderr
+    or 'Changed' in bundle_out.stdout
+    or 'Changed' in bundle_out.stderr
+  when: not ansible_check_mode

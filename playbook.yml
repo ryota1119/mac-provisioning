@@ -1,0 +1,18 @@
+- hosts: local
+  gather_facts: true
+  become: false
+
+  pre_tasks:
+    - name: Ensure Homebrew is present (bootstrapでも入れるが念のため)
+      ansible.builtin.stat:
+        path: /opt/homebrew/bin/brew
+      register: brew_stat
+
+    - name: Abort when Homebrew missing
+      ansible.builtin.fail:
+        msg: "Homebrew is not installed. Run: make bootstrap"
+      when: not brew_stat.stat.exists
+
+  roles:
+    - homebrew
+

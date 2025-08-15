@@ -1,0 +1,24 @@
+---
+# Homebrew: formulae 全アップグレード
+- name: upgrade all formulae
+  community.general.homebrew:
+    update_homebrew: true
+    upgrade_all: true
+    upgrade_options: "{{ brew_upgrade_options | default([]) }}"
+  tags: never, brew-upgrade, brew-upgrade-formula
+
+# Homebrew: cask 全アップグレード（自動更新アプリも含めるなら greedy:true）
+- name: upgrade all casks (greedy)
+  community.general.homebrew_cask:
+    update_homebrew: true
+    upgrade_all: true
+    greedy: "{{ brew_cask_greedy | default(true) }}"
+  tags: never, brew-upgrade, brew-upgrade-cask
+
+# MAS: 一括アップデート（サインイン済み時のみ）
+- name: upgrade all apps
+  community.general.mas:
+    upgrade_all: true
+  when: mas_enable | default(true)
+  tags: never, brew-upgrade, brew-upgrade-mas
+

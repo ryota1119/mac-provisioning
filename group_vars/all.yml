@@ -1,0 +1,5 @@
+brewfile_per_host: true
+brewfile_generate_lock: false
+brewfile_cleanup: false     
+brewfile_file_path: "{{ ansible_env.HOME }}/.Brewfile.tmp"
+
