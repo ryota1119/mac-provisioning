@@ -1,0 +1,12 @@
+# Brewfile (shinohararyoutanoMacBook-Air) generated: 2025-09-01 18:47:14
+# このファイルは現在の環境から、Brewfile.common に含まれない項目のみを抽出しています。
+
+brew "k1low/tap/octocov"
+cask "chatwork"
+cask "keyclu"
+cask "prefs-editor"
+cask "pushplaylabs-sidekick"
+cask "thebrowsercompany-dia"
+cask "vrew"
+mas "Kindle", id: 302584613
+mas "MARKETSPEED", id: 946680495

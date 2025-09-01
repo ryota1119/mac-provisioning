@@ -34,16 +34,20 @@ all: bootstrap provision vscode
 
 .PHONY: brew-upgrade
 brew-upgrade:
-	ansible-playbook playbook.yml --tags brew-upgrade
+	ansible-playbook playbook.yml --tags brew-upgrade -v --diff
 
 .PHONY: brew-upgrade-formula
 brew-upgrade-formula:
-	ansible-playbook playbook.yml --tags brew-upgrade-formula
+	ansible-playbook playbook.yml --tags brew-upgrade-formula -v --diff
 
 .PHONY: brew-upgrade-cask
 brew-upgrade-cask:
-	ansible-playbook playbook.yml --tags brew-upgrade-cask
+	ansible-playbook playbook.yml --tags brew-upgrade-cask -v --diff
 
 .PHONY: brew-upgrade-mas
 brew-upgrade-mas:
-	ansible-playbook playbook.yml --tags brew-upgrade-mas
+	ansible-playbook playbook.yml --tags brew-upgrade-mas -v --diff
+
+.PHONY: brew-upgrade-log
+brew-upgrade-log:
+	ansible-playbook playbook.yml --tags brew-upgrade -v --diff | tee logs/brew-upgrade-$(shell date +%Y%m%d-%H%M%S).log

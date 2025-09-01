@@ -50,6 +50,11 @@
 
 # ========= 実行フェーズ =========
 
+# アップグレードタスクのインクルード
+- name: Include upgrade tasks
+  ansible.builtin.include_tasks: upgrade.yml
+  tags: brew-upgrade, brew-upgrade-formula, brew-upgrade-cask, brew-upgrade-mas
+
 # チェックモード：実際には入れずに検証だけ
 - name: Dry-run brew bundle check (check-mode)
   ansible.builtin.shell: |
